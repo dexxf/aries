@@ -15,6 +15,8 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
 app:
+  auth:
+    refresh-token-expiration-days: ${REFRESH_TOKEN_EXPIRATION_DAYS:30}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
     allowed-methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
