@@ -1,0 +1,48 @@
+package com.dexxf.iris.auth.adapter.out.persistence.repository;
+
+import com.dexxf.iris.auth.adapter.out.persistence.mapper.RefreshTokenMapper;
+import com.dexxf.iris.auth.application.port.out.RefreshTokenAppRepository;
+import com.dexxf.iris.auth.application.result.RefreshTokenSaveResult;
+import com.dexxf.iris.auth.domain.entity.RefreshToken;
+import com.dexxf.iris.auth.infrastructure.persistence.entity.AuthEntity;
+import com.dexxf.iris.auth.infrastructure.persistence.repository.JpaAuthRepository;
+import com.dexxf.iris.auth.infrastructure.persistence.repository.JpaRefreshTokenRepository;
+import lombok.AllArgsConstructor;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+@AllArgsConstructor
+public class RefreshTokenAppRepositoryImpl implements RefreshTokenAppRepository {
+
+    private final JpaRefreshTokenRepository jpaRefreshTokenRepository;
+    private final JpaAuthRepository jpaAuthRepository;
+
+    @Override
+    public RefreshTokenSaveResult save(RefreshToken refreshToken) {
+        Optional<AuthEntity> authEntity = jpaAuthRepository.findById(refreshToken.getAuthId());
+
+        if (authEntity.isEmpty()) return RefreshTokenSaveResult.FAILED;
+
+        try {
+            jpaRefreshTokenRepository.saveAndFlush(RefreshTokenMapper.toEntity(refreshToken, authEntity.get()));
+            return RefreshTokenSaveResult.SAVED;
+        } catch (DataIntegrityViolationException exception) {
+            if (jpaRefreshTokenRepository.existsByAuth_IdAndDeviceId(refreshToken.getAuthId(), refreshToken.getDeviceId())) {
+                return RefreshTokenSaveResult.DUPLICATE_DEVICE;
+            }
+            return RefreshTokenSaveResult.FAILED;
+        } catch (DataAccessException exception) {
+            return RefreshTokenSaveResult.FAILED;
+        }
+    }
+
+    @Override
+    public boolean existsByAuthIdAndDeviceId(UUID authId, String deviceId) {
+        return jpaRefreshTokenRepository.existsByAuth_IdAndDeviceId(authId,deviceId);
+    }
+}
