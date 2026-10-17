@@ -24,6 +24,11 @@ app:
     max-age: 3600
 
 security:
+  hash:
+    bcrypt:
+      strength: ${BCRYPT_STRENGTH:10}
+    hmac:
+      sha-secret: ${HMAC_SHA_SECRET}
   jwt:
     secret-key: ${JWT_SECRET_KEY}
     expiration-ms: ${JWT_EXPIRATION_MS:900000}
