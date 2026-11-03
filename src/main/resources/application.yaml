@@ -17,6 +17,12 @@ spring:
               - openid
               - profile
               - email
+          facebook:
+            client-id: ${FACEBOOK_CLIENT_ID}
+            client-secret: ${FACEBOOK_CLIENT_SECRET}
+            scope:
+              - public_profile
+              - email
   jpa:
     hibernate:
       ddl-auto: create
