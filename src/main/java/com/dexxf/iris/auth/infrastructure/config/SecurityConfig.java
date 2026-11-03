@@ -2,6 +2,7 @@ package com.dexxf.iris.auth.infrastructure.config;
 
 
 import com.dexxf.iris.auth.infrastructure.filter.JwtFilter;
+import com.dexxf.iris.auth.adapter.in.handler.OAuth2SuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,9 +17,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+    private final OAuth2SuccessHandler oauth2SuccessHandler;
 
-    public SecurityConfig (JwtFilter jwtFilter) {
+    public SecurityConfig (JwtFilter jwtFilter, OAuth2SuccessHandler oauth2SuccessHandler) {
         this.jwtFilter = jwtFilter;
+        this.oauth2SuccessHandler = oauth2SuccessHandler;
     }
 
     @Bean
@@ -28,6 +31,11 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/oauth2/**", "/login/**").permitAll()
+                        .anyRequest().authenticated())
+                .oauth2Login(oauth -> oauth
+                        .successHandler(oauth2SuccessHandler))
 
                 .exceptionHandling(ex ->
                         ex.authenticationEntryPoint(((request, response, authException) -> {
