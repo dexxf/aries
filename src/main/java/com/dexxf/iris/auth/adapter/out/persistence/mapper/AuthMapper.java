@@ -3,6 +3,9 @@ package com.dexxf.iris.auth.adapter.out.persistence.mapper;
 import com.dexxf.iris.auth.domain.entity.Auth;
 import com.dexxf.iris.auth.infrastructure.persistence.entity.AuthEntity;
 
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+
 public final class AuthMapper {
 
     private AuthMapper() {
@@ -16,7 +19,7 @@ public final class AuthMapper {
                 entity.getEmail(),
                 entity.getOauthData().stream()
                         .map(OAuthDataMapper::toDomain)
-                        .toList(),
+                        .collect(Collectors.toCollection(ArrayList::new)),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
