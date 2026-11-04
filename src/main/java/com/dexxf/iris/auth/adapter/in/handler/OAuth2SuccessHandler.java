@@ -1,3 +1,4 @@
+
 package com.dexxf.iris.auth.adapter.in.handler;
 
 import com.dexxf.iris.auth.application.command.OAuthSignInCommand;
@@ -17,20 +18,26 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
 
 @Component
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+
     private final OAuthSignInUseCase signInUseCase;
     private final String successUrl;
     private final boolean secureCookies;
     private final String cookieSameSite;
     private final long jwtExpirationMs;
 
-    public OAuth2SuccessHandler(OAuthSignInUseCase signInUseCase,
-                                @Value("${app.auth.oauth-success-url}") String successUrl,
-                                @Value("${app.auth.cookie-secure}") boolean secureCookies,
-                                @Value("${app.auth.cookie-same-site}") String cookieSameSite,
-                                @Value("${security.jwt.expiration-ms}") long jwtExpirationMs) {
+    public OAuth2SuccessHandler(
+            OAuthSignInUseCase signInUseCase,
+            @Value("${app.auth.oauth-success-url}") String successUrl,
+            @Value("${app.auth.cookie-secure}") boolean secureCookies,
+            @Value("${app.auth.cookie-same-site}") String cookieSameSite,
+            @Value("${security.jwt.expiration-ms}") long jwtExpirationMs
+    ) {
         this.signInUseCase = signInUseCase;
         this.successUrl = successUrl;
         this.secureCookies = secureCookies;
@@ -54,21 +61,59 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String providerId = oauthUser.getName();
         Object emailAttribute = oauthUser.getAttributes().get("email");
         String email = emailAttribute instanceof String value ? value : null;
+
         if (providerId == null || providerId.isBlank() || email == null || email.isBlank()) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                    "OAuth provider did not provide a user ID and email");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "OAuth provider did not provide a user ID and email");
             return;
         }
 
-        Result<OAuthSignInResult, OAuthSignInError> result = signInUseCase.signIn(
-                new OAuthSignInCommand(registrationId, providerId, email));
+        String deviceId = null;
+
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("device_id".equals(cookie.getName())) {
+                    deviceId = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        boolean isNewDevice = deviceId == null || deviceId.isBlank();
+
+        if (isNewDevice) {
+            deviceId = UUID.randomUUID().toString();
+        }
+
+        Result<OAuthSignInResult, OAuthSignInError> result =
+                signInUseCase.signIn(
+                        new OAuthSignInCommand(
+                                registrationId,
+                                providerId,
+                                email,
+                                deviceId,
+                                request.getHeader("User-Agent"),
+                                request.getRemoteAddr()
+                        )
+                );
+
         if (!result.success()) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "OAuth sign-in could not be completed");
             return;
         }
 
+        OAuthSignInResult signInResult = result.data();
         int jwtTtlSeconds = (int) Math.min(Integer.MAX_VALUE, Math.max(0, jwtExpirationMs / 1000));
-        addCookie(response, "jwt", result.data().jwt(), "/", jwtTtlSeconds);
+
+        long refreshTtlSeconds = Math.max(0, Duration.between(Instant.now(), signInResult.refreshTokenExpiresAt()).getSeconds());
+
+        if (isNewDevice) {
+            addCookie(response, "device_id", deviceId, "/", 60 * 60 * 24 * 365);
+        }
+
+        addCookie(response, "jwt", signInResult.jwt(), "/", jwtTtlSeconds);
+
+        addCookie(response, "refresh_token", signInResult.refreshToken(), "/", (int) Math.min(Integer.MAX_VALUE, refreshTtlSeconds));
+
         getRedirectStrategy().sendRedirect(request, response, successUrl);
     }
 
