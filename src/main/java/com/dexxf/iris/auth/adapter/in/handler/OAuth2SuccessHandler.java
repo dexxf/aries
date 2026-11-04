@@ -5,6 +5,9 @@ import com.dexxf.iris.auth.application.command.OAuthSignInCommand;
 import com.dexxf.iris.auth.application.error.OAuthSignInError;
 import com.dexxf.iris.auth.application.port.in.OAuthSignInUseCase;
 import com.dexxf.iris.auth.application.result.OAuthSignInResult;
+import com.dexxf.iris.auth.infrastructure.config.properties.DeviceIdCookieProperties;
+import com.dexxf.iris.auth.infrastructure.config.properties.JwtCookieProperties;
+import com.dexxf.iris.auth.infrastructure.config.properties.RefreshCookieProperties;
 import com.dexxf.iris.common.result.Result;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -27,22 +30,26 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final OAuthSignInUseCase signInUseCase;
     private final String successUrl;
-    private final boolean secureCookies;
-    private final String cookieSameSite;
+    private final DeviceIdCookieProperties deviceCookie;
+    private final JwtCookieProperties jwtCookie;
+    private final RefreshCookieProperties refreshCookie;
     private final long jwtExpirationMs;
 
     public OAuth2SuccessHandler(
             OAuthSignInUseCase signInUseCase,
             @Value("${app.auth.oauth-success-url}") String successUrl,
-            @Value("${app.auth.cookie-secure}") boolean secureCookies,
-            @Value("${app.auth.cookie-same-site}") String cookieSameSite,
+            DeviceIdCookieProperties deviceCookie,
+            JwtCookieProperties jwtCookie,
+            RefreshCookieProperties refreshCookie,
             @Value("${security.jwt.expiration-ms}") long jwtExpirationMs
     ) {
         this.signInUseCase = signInUseCase;
         this.successUrl = successUrl;
-        this.secureCookies = secureCookies;
-        this.cookieSameSite = cookieSameSite;
+        this.deviceCookie = deviceCookie;
+        this.jwtCookie = jwtCookie;
+        this.refreshCookie = refreshCookie;
         this.jwtExpirationMs = jwtExpirationMs;
+
         setDefaultTargetUrl(successUrl);
     }
 
@@ -107,22 +114,41 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         long refreshTtlSeconds = Math.max(0, Duration.between(Instant.now(), signInResult.refreshTokenExpiresAt()).getSeconds());
 
         if (isNewDevice) {
-            addCookie(response, "device_id", deviceId, "/", 60 * 60 * 24 * 365);
+            addCookie(response, "device_id", deviceId,
+                    deviceCookie.secure(),
+                    deviceCookie.httpOnly(),
+                    deviceCookie.domain(),
+                    deviceCookie.path(),
+                    deviceCookie.sameSite(),
+                    deviceCookie.maxAge());
         }
 
-        addCookie(response, "jwt", signInResult.jwt(), "/", jwtTtlSeconds);
+        addCookie(response, "jwt", signInResult.jwt(),
+                jwtCookie.secure(),
+                jwtCookie.httpOnly(),
+                jwtCookie.domain(),
+                jwtCookie.path(),
+                jwtCookie.sameSite(),
+                jwtTtlSeconds);
 
-        addCookie(response, "refresh_token", signInResult.refreshToken(), "/", (int) Math.min(Integer.MAX_VALUE, refreshTtlSeconds));
+        addCookie(response, "refresh_token", signInResult.refreshToken(),
+                refreshCookie.secure(),
+                refreshCookie.httpOnly(),
+                refreshCookie.domain(),
+                refreshCookie.path(),
+                refreshCookie.sameSite(),
+                (int) Math.min(Integer.MAX_VALUE, refreshTtlSeconds));
 
         getRedirectStrategy().sendRedirect(request, response, successUrl);
     }
 
-    private void addCookie(HttpServletResponse response, String name, String value, String path, int maxAgeSeconds) {
+    private void addCookie(HttpServletResponse response, String name, String value, boolean secure, boolean httpOnly, String domain, String path, String sameSite, int maxAgeSeconds) {
         Cookie cookie = new Cookie(name, value);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(secureCookies);
+        cookie.setSecure(secure);
+        cookie.setHttpOnly(httpOnly);
+        cookie.setDomain(domain);
         cookie.setPath(path);
-        cookie.setAttribute("SameSite", cookieSameSite);
+        cookie.setAttribute("SameSite", sameSite);
         cookie.setMaxAge(maxAgeSeconds);
         response.addCookie(cookie);
     }
