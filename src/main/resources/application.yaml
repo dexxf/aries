@@ -45,24 +45,24 @@ app:
     max-age: 3600
   cookie:
     device:
-      secure: true
-      http-only: true
-      domain: localhost
-      path: /
-      same-site: Lax
-      max-age: 31536000
+      secure: ${COOKIE_DEVICE_SECURE:true}
+      http-only: ${COOKIE_DEVICE_HTTP_ONLY:true}
+      domain: ${COOKIE_DEVICE_DOMAIN:localhost}
+      path: ${COOKIE_DEVICE_PATH:/}
+      same-site: ${COOKIE_DEVICE_SAME_SITE:Lax}
+      max-age: ${COOKIE_DEVICE_MAX_AGE:31536000}
     jwt:
-      secure: true
-      http-only: true
-      domain: localhost
-      path: /
-      same-site: Lax
+      secure: ${COOKIE_JWT_SECURE:true}
+      http-only: ${COOKIE_JWT_HTTP_ONLY:true}
+      domain: ${COOKIE_JWT_DOMAIN:localhost}
+      path: ${COOKIE_JWT_PATH:/}
+      same-site: ${COOKIE_JWT_SAME_SITE:Lax}
     refresh:
-      secure: true
-      http-only: true
-      domain: localhost
-      path: /
-      same-site: Lax
+      secure: ${COOKIE_REFRESH_SECURE:true}
+      http-only: ${COOKIE_REFRESH_HTTP_ONLY:true}
+      domain: ${COOKIE_REFRESH_DOMAIN:localhost}
+      path: ${COOKIE_REFRESH_PATH:/}
+      same-site: ${COOKIE_REFRESH_SAME_SITE:Lax}
 
 security:
   hash:
