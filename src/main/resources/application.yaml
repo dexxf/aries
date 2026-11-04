@@ -71,3 +71,5 @@ security:
   jwt:
     secret-key: ${JWT_SECRET_KEY}
     expiration-ms: ${JWT_EXPIRATION_MS:900000}
+  refresh-token:
+    lifetime-hour: ${REFRESH_TOKEN_LIFETIME_HOUR:168}
