@@ -5,6 +5,7 @@ import com.dexxf.iris.auth.application.port.out.RefreshTokenAppRepository;
 import com.dexxf.iris.auth.application.result.RefreshTokenSaveResult;
 import com.dexxf.iris.auth.domain.entity.RefreshToken;
 import com.dexxf.iris.auth.infrastructure.persistence.entity.AuthEntity;
+import com.dexxf.iris.auth.infrastructure.persistence.entity.RefreshTokenEntity;
 import com.dexxf.iris.auth.infrastructure.persistence.repository.JpaAuthRepository;
 import com.dexxf.iris.auth.infrastructure.persistence.repository.JpaRefreshTokenRepository;
 import lombok.AllArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,7 +44,40 @@ public class RefreshTokenAppRepositoryImpl implements RefreshTokenAppRepository 
     }
 
     @Override
-    public boolean existsByAuthIdAndDeviceId(UUID authId, String deviceId) {
-        return jpaRefreshTokenRepository.existsByAuth_IdAndDeviceId(authId,deviceId);
+    public Optional<RefreshToken> findByAuthIdAndDeviceId(UUID authId, String deviceId) {
+        return jpaRefreshTokenRepository.findByAuth_IdAndDeviceId(authId,deviceId)
+                .map(RefreshTokenMapper::toDomain);
+    }
+
+    @Override
+    public boolean updateToken(UUID id, String hashedToken, Instant newExpiry, String ipAddress, String userAgent) {
+        try {
+            Optional<RefreshTokenEntity> authRefreshTokenEntityOpt = jpaRefreshTokenRepository.findById(id);
+            if(authRefreshTokenEntityOpt.isEmpty()) return false;
+            RefreshTokenEntity authRefreshTokenEntity = authRefreshTokenEntityOpt.get();
+
+            authRefreshTokenEntity.setExpiresAt(newExpiry);
+            authRefreshTokenEntity.setHashedToken(hashedToken);
+            authRefreshTokenEntity.setRevoked(false);
+            authRefreshTokenEntity.setRevokedAt(null);
+            authRefreshTokenEntity.setIpAddress(ipAddress);
+            authRefreshTokenEntity.setUserAgent(userAgent);
+            authRefreshTokenEntity.setUpdatedAt(Instant.now());
+
+            jpaRefreshTokenRepository.save(authRefreshTokenEntity);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public Optional<RefreshToken> findByRefreshTokenId(UUID refreshTokenId) {
+        return jpaRefreshTokenRepository.findById(refreshTokenId).map(RefreshTokenMapper::toDomain);
+    }
+
+    @Override
+    public boolean rotateToken(UUID tokenId, String currentHashedToken, String newHashedToken, Instant newExpiresAt, String ipAddress, String userAgent) {
+        return jpaRefreshTokenRepository.rotateToken(tokenId, currentHashedToken, newHashedToken, newExpiresAt, ipAddress, userAgent) == 1;
     }
 }

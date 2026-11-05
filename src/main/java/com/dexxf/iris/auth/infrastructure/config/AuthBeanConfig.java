@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.security.SecureRandom;
+import java.time.Clock;
 
 @Configuration
 public class AuthBeanConfig {
@@ -18,6 +19,11 @@ public class AuthBeanConfig {
     @Bean
     public SecureRandom secureRandom() {
         return new SecureRandom();
+    }
+
+    @Bean
+    public Clock clock() {
+        return Clock.systemUTC();
     }
 
 }

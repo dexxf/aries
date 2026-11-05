@@ -62,7 +62,7 @@ public final class OAuthSignInService implements OAuthSignInUseCase {
         Auth auth = authRepository.findByOAuthProviderId(provider, command.providerId())
                 .orElseGet(() -> createAuth(provider, command));
 
-        String jwt = jwtTokenGenerator.generateToken(auth.getId().toString());
+        String jwt = jwtTokenGenerator.generateToken(auth.getId());
 
         Result<IssueRefreshTokenResult, IssueRefreshTokenError> refreshResult =
                 issueRefreshTokenUseCase.issue(

@@ -14,7 +14,7 @@ public class RefreshTokenFactoryImpl implements RefreshTokenFactory {
 
     private final int refreshTokenExpirationByDays;
 
-    public RefreshTokenFactoryImpl(@Value("${app.auth.refresh-token-expiration-days}") int refreshTokenExpirationByDays) {
+    public RefreshTokenFactoryImpl(@Value("${security.refresh-token.lifetime-hour}") int refreshTokenExpirationByDays) {
         this.refreshTokenExpirationByDays = refreshTokenExpirationByDays;
     }
 
