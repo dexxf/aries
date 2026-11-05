@@ -70,4 +70,14 @@ public class RefreshTokenAppRepositoryImpl implements RefreshTokenAppRepository 
             return false;
         }
     }
+
+    @Override
+    public Optional<RefreshToken> findByRefreshTokenId(UUID refreshTokenId) {
+        return jpaRefreshTokenRepository.findById(refreshTokenId).map(RefreshTokenMapper::toDomain);
+    }
+
+    @Override
+    public boolean rotateToken(UUID tokenId, String currentHashedToken, String newHashedToken, Instant newExpiresAt, String ipAddress, String userAgent) {
+        return jpaRefreshTokenRepository.rotateToken(tokenId, currentHashedToken, newHashedToken, newExpiresAt, ipAddress, userAgent) == 1;
+    }
 }

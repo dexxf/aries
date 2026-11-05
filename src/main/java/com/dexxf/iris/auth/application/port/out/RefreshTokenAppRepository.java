@@ -12,4 +12,6 @@ public interface RefreshTokenAppRepository {
     RefreshTokenSaveResult save(RefreshToken refreshToken);
     Optional<RefreshToken> findByAuthIdAndDeviceId(UUID authId, String deviceId);
     boolean updateToken(UUID id, String hashedToken, Instant newExpiry, String ipAddress, String userAgent);
+    Optional<RefreshToken> findByRefreshTokenId(UUID refreshTokenID);
+    boolean rotateToken(UUID tokenId, String currentHashedToken, String newHashedToken, Instant newExpiresAt, String ipAddress, String userAgent);
 }
